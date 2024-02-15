@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.Employee_Management_System.mapper.ManagerMapper">
+
+    <resultMap id="manager" type="com.example.Employee_Management_System.domain.Manager">
+        <result property="id" column="id" />
+        <result property="referencedCode" column="referenced_code" />
+    </resultMap>
+
+
+    <select id="findByReferenceCode" resultMap="manager">
+        SELECT * FROM managers WHERE referenced_code = #{referencedCode}
+    </select>
+
+<!--    <resultMap id="getWorkingSchedules" type="com.example.Employee_Management_System.domain.WorkingSchedule">-->
+<!--        <result property="employeeId" column="employee_id" />-->
+<!--        <result property="atMorning" column="at_morning" javaType="boolean"/>-->
+<!--        <result property="atAfternoon" column="at_afternoon" javaType="boolean"/>-->
+<!--    </resultMap>-->
+
+<!--    <select id="getWorkingSchedules" resultMap="getWorkingSchedules">-->
+<!--        SELECT * FROM working_schedules where MONTH(date) = #{monthNumber}-->
+<!--    </select>-->
+
+    <resultMap id="getAllEmployees" type="com.example.Employee_Management_System.model.EmployeeInformation">
+        <result property="id" column="id"/>
+        <result property="firstName" column="first_name" />
+        <result property="lastName" column="last_name" />
+        <result property="email" column="email" />
+        <result property="avatar" column="avatar" />
+    </resultMap>
+
+    <select id="getAllEmployees" resultMap="getAllEmployees">
+        SELECT e.id AS id,
+            u.first_name AS first_name,
+            u.last_name AS last_name,
+            u.email AS email,
+            u.avatar AS avatar
+        FROM employees e
+        JOIN users u ON e.id = u.id
+        WHERE e.manager_id = #{managerId}
+    </select>
+
+
+  <select id="getReferenceCode" resultType="string">
+    SELECT referenced_code FROM managers WHERE id = #{id}
+  </select>
+
+    <resultMap id="managerInformation" type="com.example.Employee_Management_System.model.ManagerInformation">
+        <result property="id" column="manager_id"/>
+        <result property="firstName" column="first_name"/>
+        <result property="lastName" column="last_name"/>
+        <result property="email" column="email"/>
+        <result property="avatar" column="avatar"/>
+        <result property="referencedCode" column="referenced_code"/>
+    </resultMap>
+
+    <select id="getManagerInfo" resultMap="managerInformation">
+        SELECT m.id AS manager_id,
+               u.first_name AS first_name,
+               u.last_name AS last_name,
+               u.email AS email,
+               u.avatar AS avatar,
+               m.referenced_code AS referenced_code
+        FROM managers m
+                 JOIN users u
+                      ON u.id = m.id
+        WHERE m.referenced_code = #{referencedCode}
+    </select>
+
+    <resultMap id="task_user_info" type="com.example.Employee_Management_System.dto.response.TaskDetailedInfo">
+        <result property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="status" column="status"/>
+        <result property="completion" column="completion"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="employeeId" column="employee_id"/>
+        <result property="estimateHours" column="estimate_hours"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="priority" column="priority"/>
+        <result property="projectId" column="project_id"/>
+        <result property="employeeId" column="employee_id"/>
+        <result property="employeeName" column="employee_name"/>
+        <result property="numberReports" column="number_reports"/>
+        <result property="projectName" column="project_name"/>
+        <result property="numberSubtasks" column="number_subtasks"/>
+
+    </resultMap>
+    <select id="getAllTasks" resultMap="task_user_info">
+        select
+            t.id,
+            t.title,
+            t.description,
+            t.status,
+            t.completion,
+            t.start_date,
+            t.end_date,
+            t.employee_id,
+            t.estimate_hours,
+            t.parent_id,
+            t.priority,
+            t.project_id,
+            number_reports,
+            count(sub.id) as number_subtasks,
+            employee_name,
+            project_name
+        from
+            (SELECT
+                 t.id,
+                 t.title,
+                 t.description,
+                 t.status,
+                 t.completion,
+                 t.start_date,
+                 t.end_date,
+                 t.employee_id,
+                 t.estimate_hours,
+                 t.parent_id,
+                 t.priority,
+                 t.project_id,
+                 count(r.id) as number_reports,
+                 CONCAT(u.first_name, ' ', u.last_name) AS employee_name,
+                 p.name as project_name
+             FROM tasks t
+                      LEFT JOIN users u ON u.id = t.employee_id
+                      LEFT JOIN projects p ON p.id = t.project_id
+                      LEFT JOIN reports r ON r.task_id = t.id
+                      LEFT JOIN employees e ON e.id = u.id
+             WHERE e.manager_id = #{managerId} AND t.parent_id IS NULL
+             GROUP BY t.id) t
+                left join tasks sub on sub.parent_id = t.id
+        group by t.id
+    </select>
+</mapper>
