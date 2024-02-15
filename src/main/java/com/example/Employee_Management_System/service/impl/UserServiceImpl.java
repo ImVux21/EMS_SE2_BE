@@ -47,7 +47,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Cacheable(value = "user", key = "#currentUser.id")
     public UserInformation getUserInfo(User currentUser) {
         // the current user contains all the information of the user, no need to query the database
         UserInformation userInformation = new UserInformation(currentUser);
@@ -56,7 +55,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @CachePut(value = "user", key = "#user.id")
     public UserInformation updateUserInfo(User user, UpdateProfileRequest updateProfileRequest) {
         user.setFirstName(updateProfileRequest.getFirstName());
         user.setLastName(updateProfileRequest.getLastName());

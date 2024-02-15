@@ -7,13 +7,17 @@ import com.example.Employee_Management_System.dto.request.LoginRequest;
 import com.example.Employee_Management_System.dto.request.RegisterRequest;
 import com.example.Employee_Management_System.dto.request.UpdateProfileRequest;
 import com.example.Employee_Management_System.dto.response.Response;
+import com.example.Employee_Management_System.dto.response.UserInformation;
 import com.example.Employee_Management_System.service.AuthService;
+import com.example.Employee_Management_System.service.JwtService;
 import com.example.Employee_Management_System.service.UserService;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +35,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
+    private final JwtService jwtService;
     private final Logger logger = LoggerFactory.getLogger(AuthController.class);
     @PostMapping("/register-account")
     public ResponseEntity<Response> register(@RequestBody RegisterRequest registerRequest) throws UnsupportedEncodingException, MessagingException {
@@ -72,14 +77,14 @@ public class AuthController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/register-account/manager")
-    public ResponseEntity<Response> registerManager() {
-        return authService.selectRoleManager(getCurrentUser());
+    public ResponseEntity<Response> registerManager(HttpServletRequest request) {
+        return authService.selectRoleManager(getCurrentUser(request));
     }
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/register-account/employee/{referenceCode}")
-    public ResponseEntity<Response> registerEmployee(@PathVariable String referenceCode) {
-        User user = getCurrentUser();
+    public ResponseEntity<Response> registerEmployee(@PathVariable String referenceCode, HttpServletRequest request) {
+        User user = getCurrentUser(request);
         return ResponseEntity.ok(
                 Response.builder()
                         .data(authService.selectRoleEmployee(user, referenceCode))
@@ -90,10 +95,12 @@ public class AuthController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/user-info")
-    public ResponseEntity<Response> userInfo() {
+    public ResponseEntity<Response> userInfo(HttpServletRequest request) {
+        UserInformation userInformation = userService.getUserInfo(getCurrentUser(request));
+        log.warn("User information: {}", userInformation);
         return ResponseEntity.ok(
                 Response.builder()
-                        .data(userService.getUserInfo(getCurrentUser()))
+                        .data(userInformation)
                         .status(200)
                         .message("Get user information successfully!")
                         .build());
@@ -101,8 +108,8 @@ public class AuthController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/change-avatar")
-    public ResponseEntity<Response> changeAvatar(@RequestParam("file") MultipartFile file) {
-        User user = getCurrentUser();
+    public ResponseEntity<Response> changeAvatar(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+        User user = getCurrentUser(request);
         return ResponseEntity.ok(
                 Response.builder()
                         .data(userService.changeAvatar(user, file))
@@ -111,18 +118,19 @@ public class AuthController {
                         .build());
     }
 
-    private User getCurrentUser() {
-        User user = (User) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-        log.warn("user: {}", user);
+    private User getCurrentUser(HttpServletRequest request) {
+        String authorizationHeader = request.getHeader("authorization");
+        String jwt = authorizationHeader.substring(7);
+        String email = jwtService.extractEmail(jwt);
+        User user = userService.getUserByEmail(email);
+        log.warn("User: {}", user);
         return user;
     }
 
     @PreAuthorize("isAuthenticated()")
     @PutMapping(value = "/update-user-info")
-    public ResponseEntity<Response> updateUserInfo(@RequestBody UpdateProfileRequest updateProfileRequest) {
-        User user = getCurrentUser();
+    public ResponseEntity<Response> updateUserInfo(@RequestBody UpdateProfileRequest updateProfileRequest, HttpServletRequest request) {
+        User user = getCurrentUser(request);
         return ResponseEntity.ok(
                 Response.builder()
                         .data(userService.updateUserInfo(user, updateProfileRequest))
