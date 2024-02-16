@@ -9,7 +9,7 @@ create table users (
     avatar varchar(3000),
     verification_code varchar(255),
     is_locked boolean default true,
-    registration_method varchar(255) not null default 'FORM',
+    registration_method varchar(255) not null default 'FORM'
 );
 
 

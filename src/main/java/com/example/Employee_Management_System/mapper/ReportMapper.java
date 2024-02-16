@@ -20,7 +20,7 @@ public interface ReportMapper {
 
     List<ReportDetailedInfo> findAllReportsByTaskId(long taskId);
 
-    @Insert("INSERT INTO reports (title, content, task_id, created_by, created_at, is_read) VALUES (#{title}, #{content}, #{taskId}, #{createdBy}, #{createdAt}, #{isRead})")
+    @Insert("INSERT INTO reports (title, content, created_by, created_at, is_read) VALUES (#{title}, #{content}, #{createdBy}, #{createdAt}, #{isRead})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void save(Report report);
 
